@@ -1,0 +1,402 @@
+
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AIBASHI AI Studio</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#0c1020;color:#f4f5ff;font-family:Arial,sans-serif}
+header{padding:22px;text-align:center;background:linear-gradient(120deg,#171d3b,#38246b)}
+header h1{font-size:35px;margin:0;color:#bca6ff}
+header p{color:#d6d1eb}
+nav{display:flex;gap:8px;overflow-x:auto;padding:12px;background:#151a30}
+nav button{white-space:nowrap;background:#242b49;color:white;border:0;border-radius:9px;padding:12px;cursor:pointer}
+nav button.active{background:#7954d9}
+main{max-width:1000px;margin:auto;padding:18px}
+.panel{display:none;background:#151b31;padding:20px;border-radius:15px;margin-top:10px}
+.panel.active{display:block}
+h2{color:#c4adff}
+label{display:block;margin:13px 0 7px}
+input,textarea,select{width:100%;padding:13px;border:1px solid #3c4566;border-radius:9px;background:#0d1325;color:white;font-size:15px}
+textarea{min-height:110px;resize:vertical}
+button.action{background:#7954d9;color:white;border:0;padding:13px 20px;border-radius:9px;margin-top:12px;cursor:pointer;font-size:15px}
+button.action:hover{background:#916ef0}
+.output{white-space:pre-wrap;background:#0d1325;padding:15px;border-radius:10px;margin-top:15px;line-height:1.9;min-height:50px}
+.small{font-size:12px;color:#aeb6d1;line-height:1.8}
+canvas{width:100%;background:#080b16;border-radius:12px;margin-top:12px}
+video{width:100%;margin-top:12px}
+a.download{display:inline-block;color:#c8b5ff;margin:12px}
+footer{text-align:center;color:#929ab8;padding:25px}
+</style>
+</head>
+<body>
+
+<header>
+<h1>🎬 AIBASHI</h1>
+<p>استوديو الإبداع وصناعة القصص والصور والأفلام</p>
+</header>
+
+<nav>
+<button class="active" onclick="openTab('home',this)">الرئيسية</button>
+<button onclick="openTab('assistant',this)">المساعد</button>
+<button onclick="openTab('story',this)">القصص والأفلام</button>
+<button onclick="openTab('image',this)">الصور</button>
+<button onclick="openTab('video',this)">الفيديو</button>
+<button onclick="openTab('voice',this)">الصوت</button>
+</nav>
+
+<main>
+
+<section id="home" class="panel active">
+<h2>مرحباً بك في AIBASHI</h2>
+<p>مساحتك الإبداعية لتحويل الأفكار إلى نصوص ومشاهد ومحتوى مرئي.</p>
+<div class="output">
+🤖 مساعد لكتابة الأفكار والسيناريوهات
+📖 إنشاء القصص والمشاهد
+🖼️ تصميم بطاقات بصرية
+🎥 تركيب فيديو من الصور والنصوص
+🔊 قراءة النصوص باللغة العربية
+</div>
+<p class="small">هذه النسخة تعمل دون خادم على المتصفح. بعض الوظائف أدوات إنتاج محلية وليست نماذج توليد ذكاء اصطناعي مستقلة.</p>
+</section>
+
+<section id="assistant" class="panel">
+<h2>🤖 مساعد AIBASHI</h2>
+<div id="chat" class="output">أهلاً بك! اكتب فكرتك وسأساعدك في تنظيمها.</div>
+<label>اكتب رسالتك</label>
+<textarea id="question" placeholder="مثلاً: اكتب لي فكرة فيلم وثائقي عن المغرب..."></textarea>
+<button class="action" onclick="askAssistant()">إرسال</button>
+<button class="action" onclick="clearChat()">مسح المحادثة</button>
+</section>
+
+<section id="story" class="panel">
+<h2>📖 صناعة القصص والأفلام</h2>
+<label>موضوع العمل</label>
+<textarea id="topic" placeholder="اكتب موضوع الفيلم أو القصة..."></textarea>
+<label>نوع العمل</label>
+<select id="style">
+<option>وثائقي</option>
+<option>سينمائي</option>
+<option>تاريخي</option>
+<option>درامي</option>
+<option>خيال علمي</option>
+<option>إخباري</option>
+</select>
+<label>المدة</label>
+<select id="duration">
+<option>دقيقة واحدة</option>
+<option>4 دقائق</option>
+<option>10 دقائق</option>
+<option>30 دقيقة</option>
+</select>
+<button class="action" onclick="makeStory()">إنشاء السيناريو</button>
+<div id="storyResult" class="output"></div>
+<button class="action" onclick="downloadText('storyResult','AIBASHI-script.txt')">تحميل السيناريو</button>
+</section>
+
+<section id="image" class="panel">
+<h2>🖼️ تصميم صورة وبطاقة بصرية</h2>
+<p class="small">يمكنك إنشاء بطاقة عنوان مرئية من النص، أو إضافة صورة من هاتفك. هذا ليس توليد صور AI.</p>
+<label>عنوان الصورة</label>
+<input id="imageTitle" placeholder="عنوان المشهد">
+<label>وصف إضافي</label>
+<textarea id="imageDescription" placeholder="اكتب الوصف الذي تريد إظهاره على الصورة"></textarea>
+<label>إضافة صورة من جهازك (اختياري)</label>
+<input type="file" id="imageUpload" accept="image/*">
+<button class="action" onclick="makeImage()">إنشاء البطاقة</button>
+<canvas id="imageCanvas" width="1280" height="720"></canvas>
+<button class="action" onclick="downloadImage()">تحميل الصورة PNG</button>
+</section>
+
+<section id="video" class="panel">
+<h2>🎥 إنشاء فيديو من النص والصور</h2>
+<p class="small">ينشئ هذا القسم فيديو WebM محلياً من بطاقة النص أو الصور التي ترفعها. لا يولّد مشاهد سينمائية AI.</p>
+<label>عنوان الفيديو</label>
+<input id="videoTitle" placeholder="عنوان الفيديو">
+<label>نص المشهد</label>
+<textarea id="videoText" placeholder="اكتب النص الذي سيظهر في الفيديو"></textarea>
+<label>إضافة صورة للمشهد (اختياري)</label>
+<input type="file" id="videoImage" accept="image/*">
+<label>مدة المشهد بالثواني</label>
+<select id="videoDuration">
+<option value="5">5 ثوانٍ</option>
+<option value="10">10 ثوانٍ</option>
+<option value="15">15 ثانية</option>
+</select>
+<button class="action" onclick="createVideo()">🎬 إنشاء الفيديو</button>
+<p id="videoStatus" class="small"></p>
+<video id="videoPreview" controls></video>
+<a id="videoDownload" class="download" style="display:none">تحميل الفيديو</a>
+</section>
+
+<section id="voice" class="panel">
+<h2>🔊 تحويل النص إلى صوت</h2>
+<label>النص</label>
+<textarea id="voiceText" placeholder="اكتب النص الذي تريد سماعه..."></textarea>
+<label>الصوت</label>
+<select id="voiceChoice"></select>
+<button class="action" onclick="speakText()">▶ قراءة النص</button>
+<button class="action" onclick="stopVoice()">إيقاف الصوت</button>
+<p class="small">يستخدم هذا القسم الأصوات المتاحة في متصفح جهازك. لا ينتج ملف MP3.</p>
+</section>
+
+</main>
+
+<footer>
+AIBASHI AI Studio © 2026
+</footer>
+
+<script>
+function openTab(id,btn){
+ document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+ document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
+ document.getElementById(id).classList.add('active');
+ btn.classList.add('active');
+}
+
+function askAssistant(){
+ const q=document.getElementById('question').value.trim();
+ if(!q)return;
+ const box=document.getElementById('chat');
+ let answer="يمكنني مساعدتك في تطوير هذه الفكرة. إليك طريقة للعمل عليها:\n\n";
+ answer+="1. تحديد الفكرة الرئيسية.\n";
+ answer+="2. بناء مقدمة جذابة.\n";
+ answer+="3. تقسيم الموضوع إلى مشاهد مترابطة.\n";
+ answer+="4. كتابة التعليق الصوتي والحوار.\n";
+ answer+="5. تحديد الصور والمؤثرات المطلوبة.\n\n";
+ answer+="فكرتك: "+q+"\n\n";
+ answer+="ملاحظة: هذا مساعد محلي أولي، وليس نموذج محادثة AI متصلاً.";
+ box.textContent=answer;
+}
+
+function clearChat(){
+ document.getElementById('chat').textContent="أهلاً بك! اكتب فكرتك وسأساعدك في تنظيمها.";
+ document.getElementById('question').value="";
+}
+
+function makeStory(){
+ const topic=document.getElementById('topic').value.trim();
+ if(!topic){alert("اكتب موضوع العمل أولاً");return}
+ const style=document.getElementById('style').value;
+ const duration=document.getElementById('duration').value;
+ const scenes=[
+  "المشهد الأول: افتتاحية سينمائية تقدم الموضوع وتثير فضول المشاهد.",
+  "المشهد الثاني: تقديم الخلفية التاريخية أو الواقعية للموضوع.",
+  "المشهد الثالث: عرض التفاصيل والأحداث والأطراف الرئيسية.",
+  "المشهد الرابع: تحليل النتائج والتأثيرات والتحديات.",
+  "المشهد الخامس: خاتمة تلخص الفكرة وتترك سؤالاً للمشاهد."
+ ];
+ let result="AIBASHI – سيناريو "+style+"\n";
+ result+="الموضوع: "+topic+"\nالمدة: "+duration+"\n\n";
+ result+="المقدمة:\nفي عالم تتسارع فيه الأحداث، يبرز موضوع "+topic+
+ " كقضية تستحق البحث والتحليل. فما حقيقة هذا الموضوع؟ وما أبعاده؟\n\n";
+ scenes.forEach((s,i)=>{
+  result+=s+"\n";
+  result+="الصورة المقترحة: مشاهد توضيحية مرتبطة بـ "+topic+".\n";
+  result+="حركة الكاميرا: حركة بطيئة وانتقالات سينمائية.\n";
+  result+="التعليق الصوتي: ننتقل الآن إلى تفاصيل هذا الجانب من الموضوع.\n\n";
+ });
+ result+="الخاتمة:\nوهكذا نصل إلى نهاية هذا الملف، لكن الأسئلة التي يطرحها الموضوع تظل مفتوحة أمام البحث والنقاش.\n";
+ result+="\nتنبيه: هذا قالب أولي يحتاج إلى مراجعة وإضافة معلومات موثقة ومصادر.";
+ document.getElementById('storyResult').textContent=result;
+}
+
+function downloadText(elementId,filename){
+ const text=document.getElementById(elementId).textContent;
+ if(!text.trim()){alert("لا يوجد محتوى لتحميله");return}
+ const blob=new Blob([text],{type:"text/plain;charset=utf-8"});
+ const url=URL.createObjectURL(blob);
+ const a=document.createElement('a');
+ a.href=url;a.download=filename;a.click();
+ URL.revokeObjectURL(url);
+}
+
+let uploadedImage=null;
+
+document.getElementById('imageUpload').addEventListener('change',e=>{
+ const file=e.target.files[0];
+ if(!file)return;
+ const img=new Image();
+ img.onload=()=>{uploadedImage=img};
+ img.src=URL.createObjectURL(file);
+});
+
+function drawCard(canvas,title,description,img){
+ const ctx=canvas.getContext('2d');
+ const w=canvas.width,h=canvas.height;
+ ctx.fillStyle="#11162c";
+ ctx.fillRect(0,0,w,h);
+ if(img){
+  const scale=Math.max(w/img.width,h/img.height);
+  const iw=img.width*scale,ih=img.height*scale;
+  ctx.drawImage(img,(w-iw)/2,(h-ih)/2,iw,ih);
+  ctx.fillStyle="rgba(0,0,0,.65)";
+  ctx.fillRect(0,0,w,h);
+ }else{
+  const g=ctx.createLinearGradient(0,0,w,h);
+  g.addColorStop(0,"#25205b");
+  g.addColorStop(1,"#10172d");
+  ctx.fillStyle=g;ctx.fillRect(0,0,w,h);
+ }
+ ctx.textAlign="center";
+ ctx.fillStyle="#ffffff";
+ ctx.font="bold 65px Arial";
+ ctx.fillText(title||"AIBASHI",w/2,h/2-25,w-100);
+ ctx.font="30px Arial";
+ wrapText(ctx,description||"استوديو الإبداع بالذكاء الاصطناعي",w/2,h/2+55,w-130,48);
+ ctx.font="bold 25px Arial";
+ ctx.fillStyle="#c6aaff";
+ ctx.fillText("AIBASHI",w/2,h-45);
+}
+
+function wrapText(ctx,text,x,y,maxWidth,lineHeight){
+ const words=text.split(" ");
+ let line="",lines=[];
+ for(let n=0;n<words.length;n++){
+  let test=line+words[n]+" ";
+  if(ctx.measureText(test).width>maxWidth&&n>0){
+   lines.push(line);line=words[n]+" ";
+  }else line=test;
+ }
+ lines.push(line);
+ lines.slice(0,3).forEach((l,i)=>ctx.fillText(l,x,y+i*lineHeight,maxWidth));
+}
+
+function makeImage(){
+ drawCard(
+  document.getElementById('imageCanvas'),
+  document.getElementById('imageTitle').value,
+  document.getElementById('imageDescription').value,
+  uploadedImage
+ );
+}
+
+function downloadImage(){
+ const canvas=document.getElementById('imageCanvas');
+ const a=document.createElement('a');
+ a.download="AIBASHI-image.png";
+ a.href=canvas.toDataURL("image/png");
+ a.click();
+}
+
+let videoImage=null;
+
+document.getElementById('videoImage').addEventListener('change',e=>{
+ const file=e.target.files[0];
+ if(!file)return;
+ const img=new Image();
+ img.onload=()=>{videoImage=img};
+ img.src=URL.createObjectURL(file);
+});
+
+async function createVideo(){
+ const title=document.getElementById('videoTitle').value||"AIBASHI";
+ const text=document.getElementById('videoText').value||"مرحباً بكم في AIBASHI";
+ const seconds=Number(document.getElementById('videoDuration').value);
+ const status=document.getElementById('videoStatus');
+ const canvas=document.createElement('canvas');
+ canvas.width=1280;canvas.height=720;
+ const ctx=canvas.getContext('2d');
+
+ if(!canvas.captureStream||!window.MediaRecorder){
+  status.textContent="متصفحك لا يدعم تسجيل الفيديو. جرّب متصفحاً حديثاً.";
+  return;
+ }
+
+ const stream=canvas.captureStream(25);
+ let mime="video/webm;codecs=vp9";
+ if(!MediaRecorder.isTypeSupported(mime))mime="video/webm";
+
+ const recorder=new MediaRecorder(stream,{mimeType:mime});
+ const chunks=[];
+ recorder.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)};
+ recorder.onstop=()=>{
+  const blob=new Blob(chunks,{type:"video/webm"});
+  const url=URL.createObjectURL(blob);
+  const preview=document.getElementById('videoPreview');
+  preview.src=url;
+  const link=document.getElementById('videoDownload');
+  link.href=url;link.download="AIBASHI-video.webm";
+  link.style.display="inline-block";
+  link.textContent="⬇ تحميل الفيديو";
+  status.textContent="تم إنشاء الفيديو بنجاح.";
+  stream.getTracks().forEach(t=>t.stop());
+ };
+
+ function frame(t){
+  const w=canvas.width,h=canvas.height;
+  ctx.fillStyle="#11162c";ctx.fillRect(0,0,w,h);
+  if(videoImage){
+   const scale=Math.max(w/videoImage.width,h/videoImage.height);
+   const iw=videoImage.width*scale,ih=videoImage.height*scale;
+   ctx.drawImage(videoImage,(w-iw)/2,(h-ih)/2,iw,ih);
+   ctx.fillStyle="rgba(0,0,0,.62)";ctx.fillRect(0,0,w,h);
+  }else{
+   const g=ctx.createLinearGradient(0,0,w,h);
+   g.addColorStop(0,"#34236a");g.addColorStop(1,"#10172d");
+   ctx.fillStyle=g;ctx.fillRect(0,0,w,h);
+  }
+  ctx.textAlign="center";
+  ctx.fillStyle="#fff";ctx.font="bold 65px Arial";
+  ctx.fillText(title,w/2,230,w-100);
+  ctx.font="32px Arial";
+  wrapText(ctx,text,w/2,340,w-160,55);
+  ctx.fillStyle="#c6aaff";ctx.font="bold 28px Arial";
+  ctx.fillText("AIBASHI",w/2,660);
+ }
+
+ status.textContent="جارٍ إنشاء الفيديو...";
+ recorder.start();
+ const start=Date.now();
+ function animate(){
+  const elapsed=(Date.now()-start)/1000;
+  frame(elapsed);
+  if(elapsed<seconds){
+   requestAnimationFrame(animate);
+  }else{
+   recorder.stop();
+  }
+ }
+ animate();
+}
+
+function loadVoices(){
+ const select=document.getElementById('voiceChoice');
+ select.innerHTML="";
+ const voices=speechSynthesis.getVoices();
+ voices.forEach((v,i)=>{
+  const opt=document.createElement('option');
+  opt.value=i;opt.textContent=v.name+" ("+v.lang+")";
+  select.appendChild(opt);
+ });
+}
+if('speechSynthesis' in window){
+ loadVoices();
+ speechSynthesis.onvoiceschanged=loadVoices;
+}
+
+function speakText(){
+ const text=document.getElementById('voiceText').value.trim();
+ if(!text){alert("اكتب النص أولاً");return}
+ if(!('speechSynthesis' in window)){
+  alert("متصفحك لا يدعم القراءة الصوتية");return;
+ }
+ speechSynthesis.cancel();
+ const utterance=new SpeechSynthesisUtterance(text);
+ const voices=speechSynthesis.getVoices();
+ const selected=voices[Number(document.getElementById('voiceChoice').value)];
+ if(selected)utterance.voice=selected;
+ utterance.lang="ar";
+ utterance.rate=0.9;
+ speechSynthesis.speak(utterance);
+}
+
+function stopVoice(){
+ if('speechSynthesis' in window)speechSynthesis.cancel();
+}
+</script>
+</body>
+  </html>
+  
