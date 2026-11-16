@@ -1,281 +1,266 @@
 
-async function generateAIImage() {
-    const prompt = document.getElementById("imagePrompt").value.trim();
-    const style = document.getElementById("imageStyle").value;
-    const size = Number(document.getElementById("imageSize").value);
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AIBASHI AI - مولد الصور الذكي</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#0b1020;color:#f4f6ff;font-family:Arial,sans-serif}
+header{padding:22px 16px;text-align:center;background:#121a30;border-bottom:1px solid #263451}
+.logo{font-size:29px;font-weight:bold;color:#8b9cff}
+header p{color:#aab4ce;font-size:14px}
+main{max-width:850px;margin:25px auto;padding:16px}
+.panel{background:#141e35;border:1px solid #293858;border-radius:17px;padding:20px}
+h2{margin-top:0}
+label{display:block;margin:15px 0 8px;color:#cbd5f0}
+textarea,select,input{width:100%;padding:13px;border-radius:10px;border:1px solid #354667;background:#0b1428;color:white;font-size:15px}
+textarea{height:115px;resize:vertical}
+button{width:100%;padding:15px;border:0;border-radius:11px;background:#687cff;color:white;font-size:17px;font-weight:bold;margin-top:17px;cursor:pointer}
+button:disabled{opacity:.5}
+.status{padding:12px;margin-top:15px;background:#0b1428;border-radius:10px;color:#b9c8ff;line-height:1.7}
+.result{margin-top:20px;text-align:center}
+.result img{max-width:100%;border-radius:13px;border:1px solid #354667}
+.download{display:block;color:#aabaff;margin-top:12px}
+.small{color:#9eabc7;font-size:12px;line-height:1.7}
+footer{text-align:center;padding:25px;color:#8390ad;font-size:12px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:550px){.row{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
 
-    const status = document.getElementById("aiImageStatus");
-    const image = document.getElementById("aiImageResult");
-    const download = document.getElementById("aiImageDownload");
-    const button = document.getElementById("generateImageButton");
+<header>
+  <div class="logo">✦ AIBASHI AI</div>
+  <p>منصة توليد الصور بالذكاء الاصطناعي</p>
+</header>
 
-    if (!prompt) {
-        status.textContent = "اكتب وصف الصورة أولاً.";
-        return;
+<main>
+<section class="panel">
+  <h2>🎨 أنشئ صورتك الآن</h2>
+
+  <label for="prompt">اكتب وصف الصورة</label>
+  <textarea id="prompt" placeholder="مثال: قلعة مغربية قديمة وسط الجبال، إضاءة سينمائية، تفاصيل واقعية عالية..."></textarea>
+
+  <div class="row">
+    <div>
+      <label for="width">عرض الصورة</label>
+      <select id="width">
+        <option value="512">512</option>
+        <option value="768" selected>768</option>
+        <option value="1024">1024</option>
+      </select>
+    </div>
+    <div>
+      <label for="height">ارتفاع الصورة</label>
+      <select id="height">
+        <option value="512">512</option>
+        <option value="768" selected>768</option>
+        <option value="1024">1024</option>
+      </select>
+    </div>
+  </div>
+
+  <label for="model">نموذج التوليد المتاح</label>
+  <select id="model">
+    <option value="">اختيار تلقائي من النماذج المتاحة</option>
+  </select>
+
+  <p class="small">
+    يتم تحميل النماذج المتاحة من شبكة AI Horde. ظهور نموذج هنا يعني أنه معلن في الشبكة، وليس ضماناً بوجود عامل متاح له في هذه اللحظة.
+  </p>
+
+  <button id="generate" onclick="generateImage()">✨ توليد الصورة</button>
+
+  <div class="status" id="status">جاهز لاستقبال وصفك.</div>
+
+  <div class="result" id="result"></div>
+</section>
+
+<section class="panel" style="margin-top:18px">
+  <h2>محركات المشروع</h2>
+  <p>🟢 AI Horde — متصل عبر واجهة API العامة.</p>
+  <p>🟡 Kandinsky 5.0 — يحتاج إلى خادم GPU لتشغيل النموذج.</p>
+  <p class="small">لن نعرض Kandinsky على أنه يعمل قبل ربط خادم حقيقي به.</p>
+</section>
+</main>
+
+<footer>
+  AIBASHI AI © 2026
+  <br>مشروع تجريبي يعتمد على نماذج الذكاء الاصطناعي المفتوحة
+</footer>
+
+<script>
+const API = "https://aihorde.net/api/v2";
+const ANON_KEY = "0000000000";
+
+const statusBox = document.getElementById("status");
+const button = document.getElementById("generate");
+const resultBox = document.getElementById("result");
+const modelSelect = document.getElementById("model");
+
+function showStatus(message){
+  statusBox.textContent = message;
+}
+
+async function loadModels(){
+  try{
+    const response = await fetch(API + "/status/models");
+    if(!response.ok) throw new Error("تعذر تحميل النماذج");
+    const models = await response.json();
+
+    const available = models
+      .filter(m => m.type === "image")
+      .sort((a,b) => (b.count || 0) - (a.count || 0));
+
+    available.forEach(m => {
+      const option = document.createElement("option");
+      option.value = m.name;
+      option.textContent = m.name + " — عمال: " + (m.count || 0);
+      modelSelect.appendChild(option);
+    });
+
+    showStatus("تم تحميل قائمة النماذج. اكتب وصف الصورة للبدء.");
+  }catch(error){
+    showStatus("تعذر تحميل قائمة النماذج حالياً. يمكنك تجربة التوليد بالاختيار التلقائي.");
+  }
+}
+
+async function generateImage(){
+  const prompt = document.getElementById("prompt").value.trim();
+  const width = Number(document.getElementById("width").value);
+  const height = Number(document.getElementById("height").value);
+  const selectedModel = modelSelect.value;
+
+  if(!prompt){
+    showStatus("يرجى كتابة وصف الصورة أولاً.");
+    return;
+  }
+
+  button.disabled = true;
+  resultBox.innerHTML = "";
+  showStatus("جارٍ إرسال طلبك إلى شبكة AI Horde...");
+
+  try{
+    const payload = {
+      prompt: prompt,
+      params: {
+        width: width,
+        height: height,
+        steps: 25,
+        n: 1,
+        cfg_scale: 7,
+        sampler_name: "k_euler"
+      },
+      nsfw: false,
+      censor_nsfw: true,
+      trusted_workers: false,
+      shared: false
+    };
+
+    if(selectedModel){
+      payload.models = [selectedModel];
     }
 
-    button.disabled = true;
-    button.textContent = "⏳ جارٍ توليد الصورة...";
-    image.style.display = "none";
-    download.style.display = "none";
+    const response = await fetch(API + "/generate/async", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "apikey": ANON_KEY
+      },
+      body: JSON.stringify(payload)
+    });
 
-    try {
-        status.textContent = "جارٍ إرسال طلبك إلى محرك الذكاء الاصطناعي...";
-
-        const response = await fetch(
-            "https://aihorde.net/api/v2/generate/async",
-            {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "apikey": "0000000000",
-                    "Client-Agent": "AIBASHI:1.0:github.com/Basidibloge/AIBASHI"
-                },
-                body: JSON.stringify({
-                    prompt: prompt + ", " + style,
-                    params: {
-                        width: size,
-                        height: size,
-                        steps: 20,
-                        cfg_scale: 7,
-                        sampler_name: "k_euler_a",
-                        n: 1
-                    },
-                    nsfw: false,
-                    censor_nsfw: true,
-                    trusted_workers: false,
-                    slow_workers: true,
-                    r2: true,
-                    models: ["stable_diffusion"]
-                })
-            }
-        );
-
-        if (!response.ok) {
-            throw new Error("تعذر إرسال الطلب: " + response.status);
-        }
-
-        const job = await response.json();
-
-        if (!job.id) {
-            throw new Error("لم يتم استلام رقم المهمة.");
-        }
-
-        status.textContent = "تم قبول الطلب. ننتظر جهازاً متاحاً لتوليد الصورة...";
-
-        let result = null;
-
-        for (let i = 0; i < 120; i++) {
-            await new Promise(resolve => setTimeout(resolve, 5000));
-
-            const checkResponse = await fetch(
-                "https://aihorde.net/api/v2/generate/check/" + job.id
-            );
-
-            if (!checkResponse.ok) {
-                throw new Error("تعذر متابعة حالة التوليد.");
-            }
-
-            const check = await checkResponse.json();
-
-            status.textContent =
-                "جارٍ توليد الصورة... الانتظار: " +
-                (check.wait_time || "قيد التقدير") + " ثانية.";
-
-            if (check.faulted) {
-                throw new Error("تعذر تنفيذ المهمة. حاول مرة أخرى.");
-            }
-
-            if (check.done || check.finished >= 1) {
-                const resultResponse = await fetch(
-                    "https://aihorde.net/api/v2/generate/status/" + job.id
-                );
-
-                if (!resultResponse.ok) {
-                    throw new Error("تعذر استلام الصورة.");
-                }
-
-                result = await resultResponse.json();
-                break;
-            }
-        }
-
-        if (!result || !result.generations || !result.generations.length) {
-            throw new Error("لم تكتمل الصورة خلال وقت الانتظار. حاول لاحقاً.");
-        }
-
-        let imageUrl = result.generations[0].img;
-
-        if (!imageUrl.startsWith("http") &&
-            !imageUrl.startsWith("data:")) {
-            imageUrl = "data:image/webp;base64," + imageUrl;
-        }
-
-        image.onload = () => {
-            status.textContent = "✅ تم إنشاء الصورة الحقيقية بنجاح!";
-            download.href = imageUrl;
-            download.download = "AIBASHI-image.webp";
-            download.style.display = "inline-block";
-            download.textContent = "⬇ تحميل الصورة";
-        };
-
-        image.onerror = () => {
-            status.textContent = "تعذر عرض الصورة. افتح رابط النتيجة مباشرة.";
-            download.href = imageUrl;
-            download.textContent = "فتح الصورة";
-            download.style.display = "inline-block";
-        };
-
-        image.src = imageUrl;
-        image.style.display = "block";
-
-    } catch (error) {
-        status.textContent = "حدث خطأ: " + error.message;
-    } finally {
-        button.disabled = false;
-        button.textContent = "✨ توليد صورة حقيقية";
+    if(!response.ok){
+      const errorText = await response.text();
+      throw new Error("فشل إرسال الطلب: " + errorText);
     }
-}
-" ";
-  }else line=test;
- }
- lines.push(line);
- lines.slice(0,3).forEach((l,i)=>ctx.fillText(l,x,y+i*lineHeight,maxWidth));
-}
 
-function makeImage(){
- drawCard(
-  document.getElementById('imageCanvas'),
-  document.getElementById('imageTitle').value,
-  document.getElementById('imageDescription').value,
-  uploadedImage
- );
-}
+    const data = await response.json();
 
-function downloadImage(){
- const canvas=document.getElementById('imageCanvas');
- const a=document.createElement('a');
- a.download="AIBASHI-image.png";
- a.href=canvas.toDataURL("image/png");
- a.click();
-}
+    if(!data.id) throw new Error("لم يتم استلام رقم الطلب.");
 
-let videoImage=null;
+    showStatus("تم إرسال الطلب بنجاح. رقم الطلب: " + data.id +
+      "\nننتظر توفر عامل لتوليد الصورة...");
 
-document.getElementById('videoImage').addEventListener('change',e=>{
- const file=e.target.files[0];
- if(!file)return;
- const img=new Image();
- img.onload=()=>{videoImage=img};
- img.src=URL.createObjectURL(file);
-});
+    await waitForImage(data.id);
 
-async function createVideo(){
- const title=document.getElementById('videoTitle').value||"AIBASHI";
- const text=document.getElementById('videoText').value||"مرحباً بكم في AIBASHI";
- const seconds=Number(document.getElementById('videoDuration').value);
- const status=document.getElementById('videoStatus');
- const canvas=document.createElement('canvas');
- canvas.width=1280;canvas.height=720;
- const ctx=canvas.getContext('2d');
-
- if(!canvas.captureStream||!window.MediaRecorder){
-  status.textContent="متصفحك لا يدعم تسجيل الفيديو. جرّب متصفحاً حديثاً.";
-  return;
- }
-
- const stream=canvas.captureStream(25);
- let mime="video/webm;codecs=vp9";
- if(!MediaRecorder.isTypeSupported(mime))mime="video/webm";
-
- const recorder=new MediaRecorder(stream,{mimeType:mime});
- const chunks=[];
- recorder.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)};
- recorder.onstop=()=>{
-  const blob=new Blob(chunks,{type:"video/webm"});
-  const url=URL.createObjectURL(blob);
-  const preview=document.getElementById('videoPreview');
-  preview.src=url;
-  const link=document.getElementById('videoDownload');
-  link.href=url;link.download="AIBASHI-video.webm";
-  link.style.display="inline-block";
-  link.textContent="⬇ تحميل الفيديو";
-  status.textContent="تم إنشاء الفيديو بنجاح.";
-  stream.getTracks().forEach(t=>t.stop());
- };
-
- function frame(t){
-  const w=canvas.width,h=canvas.height;
-  ctx.fillStyle="#11162c";ctx.fillRect(0,0,w,h);
-  if(videoImage){
-   const scale=Math.max(w/videoImage.width,h/videoImage.height);
-   const iw=videoImage.width*scale,ih=videoImage.height*scale;
-   ctx.drawImage(videoImage,(w-iw)/2,(h-ih)/2,iw,ih);
-   ctx.fillStyle="rgba(0,0,0,.62)";ctx.fillRect(0,0,w,h);
-  }else{
-   const g=ctx.createLinearGradient(0,0,w,h);
-   g.addColorStop(0,"#34236a");g.addColorStop(1,"#10172d");
-   ctx.fillStyle=g;ctx.fillRect(0,0,w,h);
+  }catch(error){
+    showStatus("حدث خطأ: " + error.message);
+  }finally{
+    button.disabled = false;
   }
-  ctx.textAlign="center";
-  ctx.fillStyle="#fff";ctx.font="bold 65px Arial";
-  ctx.fillText(title,w/2,230,w-100);
-  ctx.font="32px Arial";
-  wrapText(ctx,text,w/2,340,w-160,55);
-  ctx.fillStyle="#c6aaff";ctx.font="bold 28px Arial";
-  ctx.fillText("AIBASHI",w/2,660);
- }
+}
 
- status.textContent="جارٍ إنشاء الفيديو...";
- recorder.start();
- const start=Date.now();
- function animate(){
-  const elapsed=(Date.now()-start)/1000;
-  frame(elapsed);
-  if(elapsed<seconds){
-   requestAnimationFrame(animate);
-  }else{
-   recorder.stop();
+async function waitForImage(id){
+  const start = Date.now();
+  const timeout = 10 * 60 * 1000;
+
+  while(Date.now() - start < timeout){
+    await new Promise(resolve => setTimeout(resolve, 5000));
+
+    const checkResponse = await fetch(API + "/generate/check/" + id);
+
+    if(!checkResponse.ok){
+      throw new Error("تعذر متابعة حالة الطلب.");
+    }
+
+    const check = await checkResponse.json();
+
+    if(check.faulted){
+      throw new Error("تعذر إكمال التوليد. جرّب وصفاً آخر.");
+    }
+
+    if(check.done){
+      showStatus("اكتمل التوليد. جارٍ تحميل الصورة...");
+
+      const statusResponse = await fetch(API + "/generate/status/" + id);
+
+      if(!statusResponse.ok){
+        throw new Error("تعذر استرجاع الصورة.");
+      }
+
+      const data = await statusResponse.json();
+
+      if(!data.generations || !data.generations.length){
+        throw new Error("لم تُرجع الخدمة صورة.");
+      }
+
+      const imageData = data.generations[0].img;
+
+      const img = document.createElement("img");
+      img.alt = "الصورة المولدة بواسطة AIBASHI AI";
+      img.src = imageData.startsWith("data:")
+        ? imageData
+        : "data:image/webp;base64," + imageData;
+
+      resultBox.appendChild(img);
+
+      const download = document.createElement("a");
+      download.className = "download";
+      download.textContent = "⬇ تحميل الصورة";
+      download.href = img.src;
+      download.download = "aibashi-image.webp";
+      resultBox.appendChild(download);
+
+      showStatus("تم توليد الصورة بنجاح! 🎉");
+      return;
+    }
+
+    showStatus(
+      "طلبك في الانتظار...\n" +
+      "الوقت المنقضي: " +
+      Math.floor((Date.now() - start) / 1000) +
+      " ثانية\n" +
+      "قد يستغرق التوليد وقتاً حسب توفر العمال."
+    );
   }
- }
- animate();
+
+  throw new Error("انتهت مهلة الانتظار. حاول مجدداً لاحقاً.");
 }
 
-function loadVoices(){
- const select=document.getElementById('voiceChoice');
- select.innerHTML="";
- const voices=speechSynthesis.getVoices();
- voices.forEach((v,i)=>{
-  const opt=document.createElement('option');
-  opt.value=i;opt.textContent=v.name+" ("+v.lang+")";
-  select.appendChild(opt);
- });
-}
-if('speechSynthesis' in window){
- loadVoices();
- speechSynthesis.onvoiceschanged=loadVoices;
-}
-
-function speakText(){
- const text=document.getElementById('voiceText').value.trim();
- if(!text){alert("اكتب النص أولاً");return}
- if(!('speechSynthesis' in window)){
-  alert("متصفحك لا يدعم القراءة الصوتية");return;
- }
- speechSynthesis.cancel();
- const utterance=new SpeechSynthesisUtterance(text);
- const voices=speechSynthesis.getVoices();
- const selected=voices[Number(document.getElementById('voiceChoice').value)];
- if(selected)utterance.voice=selected;
- utterance.lang="ar";
- utterance.rate=0.9;
- speechSynthesis.speak(utterance);
-}
-
-function stopVoice(){
- if('speechSynthesis' in window)speechSynthesis.cancel();
-}
+loadModels();
 </script>
 </body>
-  </html>
-  
+</html>
